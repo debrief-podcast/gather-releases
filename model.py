@@ -10,11 +10,13 @@
 #
 #     result = welcome_from_dict(json.loads(json_string))
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Any, List, TypeVar, Type, cast, Callable
-import dateutil.parser
+from typing import Any, Callable, List, Optional, Type, TypeVar, cast
 
+import dateutil.parser
 
 T = TypeVar("T")
 
@@ -66,7 +68,7 @@ class LatestRelease:
     name: Optional[str] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> 'LatestRelease':
+    def from_dict(obj: Any) -> LatestRelease:
         assert isinstance(obj, dict)
         created_at = from_datetime(obj.get("createdAt"))
         url = from_str(obj.get("url"))
@@ -90,7 +92,7 @@ class TargetTarget:
     committed_date: Optional[datetime] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> 'TargetTarget':
+    def from_dict(obj: Any) -> TargetTarget:
         assert isinstance(obj, dict)
         committed_date = from_union([from_datetime, from_none], obj.get("committedDate"))
         return TargetTarget(committed_date)
@@ -109,7 +111,7 @@ class NodeTarget:
     committed_date: Optional[datetime] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> 'NodeTarget':
+    def from_dict(obj: Any) -> NodeTarget:
         assert isinstance(obj, dict)
         id = from_str(obj.get("id"))
         name = from_union([from_str, from_none], obj.get("name"))
@@ -132,7 +134,7 @@ class NodeElement:
     target: NodeTarget
 
     @staticmethod
-    def from_dict(obj: Any) -> 'NodeElement':
+    def from_dict(obj: Any) -> NodeElement:
         assert isinstance(obj, dict)
         name = from_str(obj.get("name"))
         target = NodeTarget.from_dict(obj.get("target"))
@@ -150,7 +152,7 @@ class Refs:
     nodes: List[NodeElement]
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Refs':
+    def from_dict(obj: Any) -> Refs:
         assert isinstance(obj, dict)
         nodes = from_list(NodeElement.from_dict, obj.get("nodes"))
         return Refs(nodes)
@@ -169,7 +171,7 @@ class EdgeNode:
     latest_release: Optional[LatestRelease] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> 'EdgeNode':
+    def from_dict(obj: Any) -> EdgeNode:
         assert isinstance(obj, dict)
         name = from_str(obj.get("name"))
         name_with_owner = from_str(obj.get("nameWithOwner"))
@@ -192,7 +194,7 @@ class Edge:
     cursor: str
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Edge':
+    def from_dict(obj: Any) -> Edge:
         assert isinstance(obj, dict)
         node = EdgeNode.from_dict(obj.get("node"))
         cursor = from_str(obj.get("cursor"))
@@ -211,7 +213,7 @@ class PageInfo:
     has_next_page: bool
 
     @staticmethod
-    def from_dict(obj: Any) -> 'PageInfo':
+    def from_dict(obj: Any) -> PageInfo:
         assert isinstance(obj, dict)
         end_cursor = from_str(obj.get("endCursor"))
         has_next_page = from_bool(obj.get("hasNextPage"))
@@ -230,7 +232,7 @@ class Repositories:
     page_info: PageInfo
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Repositories':
+    def from_dict(obj: Any) -> Repositories:
         assert isinstance(obj, dict)
         edges = from_list(Edge.from_dict, obj.get("edges"))
         page_info = PageInfo.from_dict(obj.get("pageInfo"))
@@ -248,7 +250,7 @@ class Organization:
     repositories: Repositories
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Organization':
+    def from_dict(obj: Any) -> Organization:
         assert isinstance(obj, dict)
         repositories = Repositories.from_dict(obj.get("repositories"))
         return Organization(repositories)
@@ -264,7 +266,7 @@ class Data:
     organization: Organization
 
     @staticmethod
-    def from_dict(obj: Any) -> 'Data':
+    def from_dict(obj: Any) -> Data:
         assert isinstance(obj, dict)
         organization = Organization.from_dict(obj.get("organization"))
         return Data(organization)
@@ -280,7 +282,7 @@ class WelcomeElement:
     data: Data
 
     @staticmethod
-    def from_dict(obj: Any) -> 'WelcomeElement':
+    def from_dict(obj: Any) -> WelcomeElement:
         assert isinstance(obj, dict)
         data = Data.from_dict(obj.get("data"))
         return WelcomeElement(data)
