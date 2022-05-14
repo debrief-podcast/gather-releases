@@ -6,8 +6,14 @@ from sultan.api import Sultan
 
 import model
 
-query = """query ($endCursor: String) {
-  organization(login: "apache") {
+import sys
+
+repo="apache"
+if len(sys.argv) > 1:
+    repo=sys.argv[1]
+
+query = '''query ($endCursor: String) {
+  organization(login: "'''+repo+'''") {
     repositories(
       first: 100
       orderBy: {field: UPDATED_AT, direction: DESC}
@@ -57,14 +63,14 @@ query = """query ($endCursor: String) {
       }
     }
   }
-}"""
+}'''
 s = Sultan()
 r = s.gh(
     "api", "graphql", "--paginate", "--cache", "5h", "-f", f"query='{query}'"
 ).run()
 lines: List[str] = r.stdout[0].replace('{"data"', '\n{"data"').replace("\n", "", 1).splitlines()
 whole = f'[{",".join(lines)}]'
-with open("result.csv", "w+", newline="") as target:
+with open(f"{repo}.csv", "w+", newline="") as target:
     field_names = [
         "name_with_owner",
         "name",
