@@ -54,6 +54,7 @@ query = '''query ($endCursor: String) {
             tagName
             publishedAt
           }
+          stargazerCount
         }
         cursor
       }
@@ -78,6 +79,7 @@ with open(f"{repo}.csv", "w+", newline="") as target:
         "release_date",
         "release_name",
         "release_url",
+        "stars",
     ]
     writer = csv.DictWriter(
         target, field_names, dialect="unix", quoting=csv.QUOTE_MINIMAL
@@ -104,5 +106,6 @@ with open(f"{repo}.csv", "w+", newline="") as target:
                     "release_date": release.created_at if release is not None else None,
                     "release_name": release.name if release is not None else None,
                     "release_url": release.url if release is not None else None,
+                    "stars": node.stargazer_count
                 }
             )

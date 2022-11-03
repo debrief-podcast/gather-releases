@@ -10,13 +10,11 @@
 #
 #     result = welcome_from_dict(json.loads(json_string))
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable, List, Optional, Type, TypeVar, cast
-
+from typing import Optional, Any, List, TypeVar, Type, cast, Callable
 import dateutil.parser
+
 
 T = TypeVar("T")
 
@@ -54,6 +52,11 @@ def from_list(f: Callable[[Any], T], x: Any) -> List[T]:
     return [f(y) for y in x]
 
 
+def from_int(x: Any) -> int:
+    assert isinstance(x, int) and not isinstance(x, bool)
+    return x
+
+
 def from_bool(x: Any) -> bool:
     assert isinstance(x, bool)
     return x
@@ -68,7 +71,7 @@ class LatestRelease:
     name: Optional[str] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> LatestRelease:
+    def from_dict(obj: Any) -> 'LatestRelease':
         assert isinstance(obj, dict)
         created_at = from_datetime(obj.get("createdAt"))
         url = from_str(obj.get("url"))
@@ -92,7 +95,7 @@ class TargetTarget:
     committed_date: Optional[datetime] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> TargetTarget:
+    def from_dict(obj: Any) -> 'TargetTarget':
         assert isinstance(obj, dict)
         committed_date = from_union([from_datetime, from_none], obj.get("committedDate"))
         return TargetTarget(committed_date)
@@ -106,25 +109,25 @@ class TargetTarget:
 @dataclass
 class NodeTarget:
     id: str
+    committed_date: Optional[datetime] = None
     name: Optional[str] = None
     target: Optional[TargetTarget] = None
-    committed_date: Optional[datetime] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> NodeTarget:
+    def from_dict(obj: Any) -> 'NodeTarget':
         assert isinstance(obj, dict)
         id = from_str(obj.get("id"))
+        committed_date = from_union([from_datetime, from_none], obj.get("committedDate"))
         name = from_union([from_str, from_none], obj.get("name"))
         target = from_union([TargetTarget.from_dict, from_none], obj.get("target"))
-        committed_date = from_union([from_datetime, from_none], obj.get("committedDate"))
-        return NodeTarget(id, name, target, committed_date)
+        return NodeTarget(id, committed_date, name, target)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["id"] = from_str(self.id)
+        result["committedDate"] = from_union([lambda x: x.isoformat(), from_none], self.committed_date)
         result["name"] = from_union([from_str, from_none], self.name)
         result["target"] = from_union([lambda x: to_class(TargetTarget, x), from_none], self.target)
-        result["committedDate"] = from_union([lambda x: x.isoformat(), from_none], self.committed_date)
         return result
 
 
@@ -134,7 +137,7 @@ class NodeElement:
     target: NodeTarget
 
     @staticmethod
-    def from_dict(obj: Any) -> NodeElement:
+    def from_dict(obj: Any) -> 'NodeElement':
         assert isinstance(obj, dict)
         name = from_str(obj.get("name"))
         target = NodeTarget.from_dict(obj.get("target"))
@@ -152,7 +155,7 @@ class Refs:
     nodes: List[NodeElement]
 
     @staticmethod
-    def from_dict(obj: Any) -> Refs:
+    def from_dict(obj: Any) -> 'Refs':
         assert isinstance(obj, dict)
         nodes = from_list(NodeElement.from_dict, obj.get("nodes"))
         return Refs(nodes)
@@ -168,23 +171,26 @@ class EdgeNode:
     name: str
     name_with_owner: str
     refs: Refs
+    stargazer_count: int
     latest_release: Optional[LatestRelease] = None
 
     @staticmethod
-    def from_dict(obj: Any) -> EdgeNode:
+    def from_dict(obj: Any) -> 'EdgeNode':
         assert isinstance(obj, dict)
         name = from_str(obj.get("name"))
         name_with_owner = from_str(obj.get("nameWithOwner"))
         refs = Refs.from_dict(obj.get("refs"))
-        latest_release = from_union([LatestRelease.from_dict, from_none], obj.get("latestRelease"))
-        return EdgeNode(name, name_with_owner, refs, latest_release)
+        stargazer_count = from_int(obj.get("stargazerCount"))
+        latest_release = from_union([from_none, LatestRelease.from_dict], obj.get("latestRelease"))
+        return EdgeNode(name, name_with_owner, refs, stargazer_count, latest_release)
 
     def to_dict(self) -> dict:
         result: dict = {}
         result["name"] = from_str(self.name)
         result["nameWithOwner"] = from_str(self.name_with_owner)
         result["refs"] = to_class(Refs, self.refs)
-        result["latestRelease"] = from_union([lambda x: to_class(LatestRelease, x), from_none], self.latest_release)
+        result["stargazerCount"] = from_int(self.stargazer_count)
+        result["latestRelease"] = from_union([from_none, lambda x: to_class(LatestRelease, x)], self.latest_release)
         return result
 
 
@@ -194,7 +200,7 @@ class Edge:
     cursor: str
 
     @staticmethod
-    def from_dict(obj: Any) -> Edge:
+    def from_dict(obj: Any) -> 'Edge':
         assert isinstance(obj, dict)
         node = EdgeNode.from_dict(obj.get("node"))
         cursor = from_str(obj.get("cursor"))
@@ -213,7 +219,7 @@ class PageInfo:
     has_next_page: bool
 
     @staticmethod
-    def from_dict(obj: Any) -> PageInfo:
+    def from_dict(obj: Any) -> 'PageInfo':
         assert isinstance(obj, dict)
         end_cursor = from_str(obj.get("endCursor"))
         has_next_page = from_bool(obj.get("hasNextPage"))
@@ -232,7 +238,7 @@ class Repositories:
     page_info: PageInfo
 
     @staticmethod
-    def from_dict(obj: Any) -> Repositories:
+    def from_dict(obj: Any) -> 'Repositories':
         assert isinstance(obj, dict)
         edges = from_list(Edge.from_dict, obj.get("edges"))
         page_info = PageInfo.from_dict(obj.get("pageInfo"))
@@ -250,7 +256,7 @@ class Organization:
     repositories: Repositories
 
     @staticmethod
-    def from_dict(obj: Any) -> Organization:
+    def from_dict(obj: Any) -> 'Organization':
         assert isinstance(obj, dict)
         repositories = Repositories.from_dict(obj.get("repositories"))
         return Organization(repositories)
@@ -266,7 +272,7 @@ class Data:
     organization: Organization
 
     @staticmethod
-    def from_dict(obj: Any) -> Data:
+    def from_dict(obj: Any) -> 'Data':
         assert isinstance(obj, dict)
         organization = Organization.from_dict(obj.get("organization"))
         return Data(organization)
@@ -282,7 +288,7 @@ class WelcomeElement:
     data: Data
 
     @staticmethod
-    def from_dict(obj: Any) -> WelcomeElement:
+    def from_dict(obj: Any) -> 'WelcomeElement':
         assert isinstance(obj, dict)
         data = Data.from_dict(obj.get("data"))
         return WelcomeElement(data)
